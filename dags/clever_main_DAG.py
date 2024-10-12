@@ -14,6 +14,7 @@ datasets = [
     "customer_reviews_google.csv",
     "fmcsa_companies.csv",
     "fmcsa_company_snapshot.csv",
+    "fmcsa_complaints.csv",
     "fmcsa_safer_data.csv",
 ]
 

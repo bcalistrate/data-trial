@@ -77,6 +77,8 @@ def create_transformed_postgres_table(**kwargs):
         select
             usdot_num as company_id,
             fmcsa_companies.company_name,
+            fmcsa_companies.city as company_city,
+            fmcsa_companies.state as company_state,
             fmcsa_companies.location as company_location,
             fmcsa_company_snapshot.hhg_authorization,
             fmcsa_company_snapshot.num_of_trucks,
@@ -124,6 +126,8 @@ def create_transformed_postgres_table(**kwargs):
             business_status,
             phone as company_phone,
             full_address as company_full_address,
+            city as company_city,
+            state as company_state,
             city || ', ' || state as company_location,
             working_hours_old_format as working_hours,
             latitude,

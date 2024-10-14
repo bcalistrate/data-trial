@@ -77,14 +77,15 @@ with DAG(
 
         (
             start_task
-            >> extract_to_postgres_task
             >> create_staging_schema_task
+            >> create_analytics_schema_task
+            >> extract_to_postgres_task
             >> transform_to_postgres_task
         )
 
     for table, schema in transformed_tables.items():
         create_transform_tables_tasks = PythonOperator(
-            task_id=f"create_{table}",
+            task_id=f"analytics_{table}",
             python_callable=create_transformed_postgres_table,
             dag=dag,
             op_kwargs={
@@ -107,15 +108,30 @@ with DAG(
     )
 
     (
-        transform_tasks["fmcsa_complaints"],
-        transform_tables_tasks["transformed_fmcsa_companies"],
-        transform_tasks["customer_reviews_google"],
-        transform_tables_tasks["transformed_google_maps_companies"],
-    ) >> create_analytics_schema_task
+        transform_tasks["fmcsa_complaints"]
+        >> transform_tables_tasks["fmcsa_companies_complaints"]
+    )
 
     (
-        create_analytics_schema_task
+        transform_tables_tasks["transformed_fmcsa_companies"]
         >> (
+            transform_tables_tasks["fmcsa_companies"],
+            transform_tables_tasks["fmcsa_companies_complaints"],
+        )
+    )
+
+    (
+        transform_tasks["customer_reviews_google"]
+        >> transform_tables_tasks["google_maps_companies_reviews"]
+    )
+
+    (
+        transform_tables_tasks["transformed_google_maps_companies"]
+        >> transform_tables_tasks["google_maps_companies"]
+    )
+
+    (
+        (
             transform_tables_tasks["fmcsa_companies"],
             transform_tables_tasks["fmcsa_companies_complaints"],
             transform_tables_tasks["google_maps_companies"],

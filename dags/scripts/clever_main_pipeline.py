@@ -1,4 +1,9 @@
 import pandas as pd
+from nltk import download
+from nltk.corpus import stopwords
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
 from scripts.postgres_helper import (
     create_schema_if_not_exists,
     read_query,
@@ -77,6 +82,8 @@ def create_transformed_postgres_table(**kwargs):
         select
             usdot_num as company_id,
             fmcsa_companies.company_name,
+            fmcsa_companies.city as company_city,
+            fmcsa_companies.state as company_state,
             fmcsa_companies.location as company_location,
             fmcsa_company_snapshot.hhg_authorization,
             fmcsa_company_snapshot.num_of_trucks,
@@ -124,6 +131,8 @@ def create_transformed_postgres_table(**kwargs):
             business_status,
             phone as company_phone,
             full_address as company_full_address,
+            city as company_city,
+            state as company_state,
             city || ', ' || state as company_location,
             working_hours_old_format as working_hours,
             latitude,
@@ -165,6 +174,23 @@ def create_transformed_postgres_table(**kwargs):
     upload_overwrite_table(df=df, table_name=table_name, schema_name=schema_name)
 
 
+def sentiment_analysis_reviews(**kwargs):
+    download("punkt_tab")
+    download("stopwords")
+    download("vader_lexicon")
+    download("wordnet")
+
+    table_name = kwargs.get("table_name")
+    schema_name = kwargs.get("schema_name")
+    assert isinstance(table_name, str), "No table name was provided!"
+    assert isinstance(schema_name, str), "No schema name was provided!"
+
+    df = read_table(table_name=table_name, schema_name=schema_name)
+    df["processed_review"] = df["review_text"].apply(process_text)
+    df["sentiment"] = df["processed_review"].apply(get_sentiment)
+    upload_overwrite_table(df=df, table_name=table_name, schema_name=schema_name)
+
+
 def convert_monthfirst_to_datetime(date_str):
     try:
         return pd.to_datetime(date_str, format="%m/%d/%Y %H:%M:%S")
@@ -198,3 +224,37 @@ def convert_state_abbreviation(str_obj):
     if str_obj in state_codes.keys():
         return state_codes.get(str_obj)
     return str_obj
+
+
+def process_text(text):
+    if not isinstance(text, str):
+        return None
+
+    tokens = word_tokenize(text.lower())
+    filtered_tokens = []
+
+    for token in tokens:
+        if token not in stopwords.words("english") or token not in stopwords.words(
+            "spanish"
+        ):
+            filtered_tokens.append(token)
+
+    net_lemmatizer = WordNetLemmatizer()
+    net_tokens = [net_lemmatizer.lemmatize(token) for token in filtered_tokens]
+    processed_text = " ".join(net_tokens)
+
+    return processed_text
+
+
+def get_sentiment(text):
+    if not isinstance(text, str):
+        return None
+
+    analyzer = SentimentIntensityAnalyzer()
+    scores = analyzer.polarity_scores(text)
+    compound = scores.get("compound")
+    if compound >= 0.5:
+        return "Positive"
+    if compound < -0.5:
+        return "Negative"
+    return "Neutral"

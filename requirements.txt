@@ -11,4 +11,6 @@ pyarrow
 fastparquet
 great_expectations
 sqlalchemy
+nltk
+numpy
 apache-airflow==2.6.2

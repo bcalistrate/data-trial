@@ -6,6 +6,7 @@ from airflow.operators.python import PythonOperator
 from scripts.clever_main_pipeline import (
     create_postgres_schema,
     create_transformed_postgres_table,
+    sentiment_analysis_reviews,
     transform_postgres_data,
     upload_csv_to_postgres,
 )
@@ -52,6 +53,15 @@ with DAG(
         python_callable=create_postgres_schema,
         dag=dag,
         op_kwargs={"schema_name": "analytics"},
+    )
+    sentiment_analysis_task = PythonOperator(
+        task_id="execute_sentiment_analysis_reviews",
+        python_callable=sentiment_analysis_reviews,
+        dag=dag,
+        op_kwargs={
+            "table_name": "google_maps_companies_reviews",
+            "schema_name": "analytics",
+        },
     )
 
     transform_tasks = {}
@@ -137,5 +147,6 @@ with DAG(
             transform_tables_tasks["google_maps_companies"],
             transform_tables_tasks["google_maps_companies_reviews"],
         )
+        >> sentiment_analysis_task
         >> finish_task
     )

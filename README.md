@@ -20,7 +20,7 @@ To perform this project you will need to:
 * An example could be Review Sentiment, common themes among ratings, complaints, etc.
 
 ## Dataset
-Moving company data set (files can be found at 'dags/scripts/data_examples' folder)
+Moving company data set (files can be found at [data_exemples](dags/scripts/data_examples) folder)
 * fmcsa_companies.csv
 * fmcsa_company_snapshot.csv
 * fmcsa_complaints.csv
@@ -31,3 +31,39 @@ Moving company data set (files can be found at 'dags/scripts/data_examples' fold
 
 ## Getting started
 To get started with Airflow check the [getting started](docs/getting_started.md) documentation.
+
+
+# Solution Structure
+
+## Overview
+This pipeline automates the process of extracting, transforming, and loading data from various datasets into PostgreSQL. It also includes a sentiment analysis on Google Maps reviews. The pipeline uses three schemas to organize the data:
+
+- Public Schema: stores raw data extracted from CSV files.
+- Staging Schema: holds intermediate transformed data.
+- Analytics Schema: contains final, aggregated tables for use in analysis.
+
+## Pipeline Structure
+1. Schema Creation:
+   - Ensures the necessary schemas (`staging`, `analytics`) are created before data loading begins.
+
+2. Extraction: 
+   - Raw CSV files are loaded into a PostgreSQL database in the `public` schema.
+
+3. Transformation and Aggregation: 
+   - Data from the `public` schema is cleaned and transformed, then stored in the `staging` schema.
+   - Aggregations and joins are also performed in this stage.
+
+4. Final Transformation: 
+   - Final tables are created in the analytics schema, offering a clean, structured dataset for analysts.
+   
+5. Sentiment Analysis: 
+   - A sentiment analysis is performed on the Google Maps reviews (`google_maps_companies_reviews`) using basic NLP techniques, enriching the data with insights into customer feedback, enriching the data with insights.
+
+## Data Analysis
+The data exploration and analysis were performed in the [Query Data Notebook](notebooks/query_postgres_data.ipynb). This includes queries on transformed data, ranking companies, filtering by locality, and evaluating review sentiment.
+
+## Improvements
+There are opportunities for improvements for this project, such as:
+- Use dbt for data transformation, testing and documentation, , enabling more structured and modular transformations.
+- Integrate more sophisticated NLP models for sentiment analysis, such as BERT or GPT-based models, to improve accuracy and depth of analysis.
+- Split the current monolithic DAG into smaller, more manageable DAGs to improve performance and make the pipeline more maintainable.
